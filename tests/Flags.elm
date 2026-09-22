@@ -26,10 +26,23 @@ suite =
         , Test.test "Other flags aren't set by setting one flag" <|
             \_ ->
                 Expect.equal True (List.all (isolated allFlags) allFlags)
+        , Test.test "Every generated flag has a unique field" <|
+            \_ ->
+                Expect.equal True (allFieldsUnique allFlags)
         , Test.test "Flipping a zero length flag doesn't flip others" <|
             \_ ->
                 Expect.equal True (isolated allFlags Flag.skip)
         ]
+
+
+allFieldsUnique flags =
+    case flags of
+        [] ->
+            True
+
+        flag :: remaining ->
+            List.all (not << BitField.fieldEqual flag) remaining
+                && allFieldsUnique remaining
 
 
 isolated others flag =

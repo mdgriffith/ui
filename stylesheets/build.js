@@ -214,8 +214,12 @@ async function generate() {
   const { copy, pairs } = extractClasses(elmSource);
   const flagElm = generateFlagSource(flags);
 
-  let { output } = await runElm("stylesheets/Generate.elm");
-  process.chdir(root);
+  let output;
+  try {
+    ({ output } = await runElm("stylesheets/Generate.elm"));
+  } finally {
+    process.chdir(root);
+  }
 
   const generatedElm = `module Internal.Style.Generated exposing (Var(..), classes, vars, stylesheet, lineHeightAdjustment)
 
@@ -233,13 +237,33 @@ stylesheet = """${output}"""
   };
 }
 
-// ─── Tracked artifacts (checked by stylesheet:check) ─────────────────────────
-// dev.min.css is gitignored and written by `bun run stylesheet` only.
-const TRACKED_KEYS = [
-  "src/Internal/Style/Generated.elm",
-  "src/Internal/Flag.elm",
-  "tests/Generated/Inventories.elm",
-];
+// dev.min.css is gitignored and written by `bun run stylesheet` only. Every
+// other generated artifact is checked by default so new tracked outputs cannot
+// be accidentally omitted from stylesheet:check.
+const WRITE_ONLY_KEYS = new Set(["stylesheets/generated/dev.min.css"]);
+
+function findStaleArtifacts(artifacts, readFile = fs.readFileSync) {
+  const stale = [];
+
+  for (const [relPath, expected] of Object.entries(artifacts)) {
+    if (WRITE_ONLY_KEYS.has(relPath)) continue;
+
+    let current;
+    try {
+      current = readFile(relPath, "utf8");
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      stale.push(`  MISSING: ${relPath}`);
+      continue;
+    }
+
+    if (current !== expected) {
+      stale.push(`  STALE:   ${relPath}`);
+    }
+  }
+
+  return stale;
+}
 
 // ─── Write command (bun run stylesheet) ──────────────────────────────────────
 
@@ -256,21 +280,7 @@ async function write() {
 
 async function check() {
   const artifacts = await generate();
-  let stale = [];
-
-  for (const relPath of TRACKED_KEYS) {
-    const expected = artifacts[relPath];
-    let current;
-    try {
-      current = fs.readFileSync(relPath, "utf8");
-    } catch (_) {
-      stale.push(`  MISSING: ${relPath}`);
-      continue;
-    }
-    if (current !== expected) {
-      stale.push(`  STALE:   ${relPath}`);
-    }
-  }
+  const stale = findStaleArtifacts(artifacts);
 
   if (stale.length > 0) {
     console.error("stylesheet:check failed — stale or missing artifacts:");
@@ -316,6 +326,12 @@ function run() {
   }
 }
 
-module.exports = { extractClasses, generateInventories, generateFlagSource, flags };
+module.exports = {
+  extractClasses,
+  findStaleArtifacts,
+  generateInventories,
+  generateFlagSource,
+  flags,
+};
 
 if (require.main === module) run();

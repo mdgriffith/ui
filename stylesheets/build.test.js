@@ -2,7 +2,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const { extractClasses, generateInventories, generateFlagSource, flags } = require("./build");
+const {
+  extractClasses,
+  findStaleArtifacts,
+  generateInventories,
+  generateFlagSource,
+  flags,
+} = require("./build");
 
 const wrap = (record) => `{- BEGIN COPY -}
 classes =
@@ -94,4 +100,37 @@ test("all 32 flags fit, but adding a 33rd fails", () => {
   const atCapacity = Array.from({ length: 32 }, (_, i) => `flag${i}`);
   assert.match(generateFlagSource(atCapacity), /flag31 : Flag/);
   assert.throws(() => generateFlagSource([...atCapacity, "overflowFlag"]), /Flag overflow: 33/);
+});
+
+test("artifact checks report every stale or missing tracked output", () => {
+  const artifacts = {
+    "tracked-current": "current",
+    "tracked-stale": "expected",
+    "tracked-missing": "expected",
+    "stylesheets/generated/dev.min.css": "write-only",
+  };
+  const current = new Map([
+    ["tracked-current", "current"],
+    ["tracked-stale", "old"],
+  ]);
+  const readFile = (filePath) => {
+    if (current.has(filePath)) return current.get(filePath);
+    const error = new Error(`Missing ${filePath}`);
+    error.code = "ENOENT";
+    throw error;
+  };
+
+  assert.deepEqual(findStaleArtifacts(artifacts, readFile), [
+    "  STALE:   tracked-stale",
+    "  MISSING: tracked-missing",
+  ]);
+});
+
+test("artifact checks propagate read errors other than missing files", () => {
+  const denied = new Error("Permission denied");
+  denied.code = "EACCES";
+  assert.throws(
+    () => findStaleArtifacts({ tracked: "expected" }, () => { throw denied; }),
+    /Permission denied/
+  );
 });

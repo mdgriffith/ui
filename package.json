@@ -4,8 +4,8 @@
   "description": "Run the Elm UI benchmarks and render tests",
   "main": "index.js",
   "engines": {
-    "node": ">=22",
-    "bun": ">=1.4.2"
+    "node": "22.x",
+    "bun": "1.4.2"
   },
   "packageManager": "bun@1.4.2",
   "scripts": {
@@ -26,14 +26,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mdgriffith/elm-ui.git"
+    "url": "git+https://github.com/mdgriffith/ui.git"
   },
   "author": "Matthew Griffith <mdg.griffith@gmail.com> (http://mechanical-elephant.com/)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/mdgriffith/elm-ui/issues"
+    "url": "https://github.com/mdgriffith/ui/issues"
   },
-  "homepage": "https://github.com/mdgriffith/elm-ui#readme",
+  "homepage": "https://github.com/mdgriffith/ui#readme",
   "dependencies": {
     "chalk": "^2.4.2",
     "commander": "^2.20.0",

@@ -266,7 +266,7 @@ copyTests =
                         BitField.init |> BitField.set low4 11
 
                     dst =
-                        BitField.init |> BitField.set low4 0
+                        BitField.init |> BitField.set low4 4
                 in
                 BitField.copy low4 src dst
                     |> BitField.get low4
@@ -278,7 +278,9 @@ copyTests =
                         BitField.init |> BitField.set low4 7
 
                     dst =
-                        BitField.init |> BitField.set mid4 13
+                        BitField.init
+                            |> BitField.set low4 12
+                            |> BitField.set mid4 13
                 in
                 let
                     result =
@@ -302,12 +304,13 @@ booleanTests =
                     |> BitField.flipIf flag1 True
                     |> BitField.has flag1
                     |> Expect.equal True
-        , Test.test "flipIf False leaves the flag unset" <|
+        , Test.test "flipIf False leaves a set flag unchanged" <|
             \_ ->
                 BitField.init
+                    |> BitField.flip flag1 True
                     |> BitField.flipIf flag1 False
                     |> BitField.has flag1
-                    |> Expect.equal False
+                    |> Expect.equal True
         , Test.test "flip True sets the flag" <|
             \_ ->
                 BitField.init
@@ -397,21 +400,25 @@ boundaryTests =
                     b =
                         BitField.init |> BitField.set mid4 3
                 in
-                Expect.equal
-                    (BitField.get low4 (BitField.merge a b))
-                    5
-        , Test.test "first 32 produces a full 32-bit mask (set clamps to max)" <|
+                let
+                    merged =
+                        BitField.merge a b
+                in
+                Expect.equal ( 5, 3 )
+                    ( BitField.get low4 merged, BitField.get mid4 merged )
+        , Test.test "first 32 includes the sign bit" <|
             \_ ->
                 let
                     full =
                         BitField.first 32
+
+                    signBit =
+                        BitField.next 1 (BitField.first 31)
                 in
-                -- set to max value of a 32-bit field; result should be all ones (as unsigned)
-                -- Elm uses signed 32-bit ints so we check the raw int via toInt
                 BitField.init
-                    |> BitField.set full 0x7FFFFFFF
-                    |> BitField.get full
-                    |> Expect.equal 0x7FFFFFFF
+                    |> BitField.flip signBit True
+                    |> BitField.has full
+                    |> Expect.equal True
         , Test.fuzz (Fuzz.intRange 0 255) "set/get round-trips for all values in high8" <|
             \v ->
                 BitField.init
