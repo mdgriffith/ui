@@ -1,16 +1,16 @@
 # Elm UI Test Suite
 
-There are two types of tests for Elm UI.  The normal kind, which are located in `tests/suite/`
+There are two types of tests for Elm UI. The deterministic non-browser tests are located in `tests/` and `stylesheets/build.test.js`.
 
-These can be run using [`elm-test`](https://github.com/elm-explorations/test) and can be run via 
+Use Node 22 and Bun 1.4.2 from the repository root:
 
 ```bash
-# in the root elm-ui directory
-yarn install   # or npm install
-yarn run test  # or npm run test
+bun install --frozen-lockfile
+bun run stylesheet:check
+bun run test
 ```
 
-**Note** you need to be at the `elm-ui` root dir.
+Use `bun run stylesheet` explicitly when generated stylesheet, class, or flag artifacts need to be updated.
 
 # Layout Testing
 
@@ -23,8 +23,8 @@ So, the tests in `elm-ui/tests-rendering/src/Tests` will render output, then har
 Run this locally via:
 
 ```bash
-npm install
-npm run test-render
+bun install --frozen-lockfile
+bun run test-render
 ```
 
 **Note** if you run this, it runs by default in headless chrome, so you won't see a browser actually open.  Ideally you'll just see something like this:
@@ -52,7 +52,7 @@ export SAUCE_USERNAME={your username}
 You can then run.
 
 ```bash
-npm run test-render-sauce
+bun run test-render-sauce
 ```
 
 **Note**: The compiled `elm-ui` test needs to be made public somewhere in order for this to work.  At the moment it's at my github.io account, though something more permanenet might be set up.
